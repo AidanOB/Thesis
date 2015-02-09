@@ -41,3 +41,15 @@ Icon
 Network Trash Folder
 Temporary Items
 .apdisk
+
+*.xml
+*.pdf
+*.ods#
+*.csv#
+GuiFiles/run_icon.jpg
+GuiFiles/play_image.png
+GuiFiles/play_image.jpg
+GuiFiles/Play Images.jpg
+GuiFiles/exit_icon.jpg
+*.pyc
+GuiFiles/save_image.png
