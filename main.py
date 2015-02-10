@@ -14,6 +14,7 @@ root = Tk()
 root.wm_title('CubeSat Conceptual Design Generator')
 root.minsize(840, 600)
 root.geometry('840x600')
+root.wm_iconbitmap(bitmap='./GuiFiles/cubesat_image.ico')
 
 nsga.create_population(20)
 

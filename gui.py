@@ -31,12 +31,17 @@ class ThesisGui:
         self.menu = Menu(master)
         master.config(menu=self.menu)
 
-        self.sub_menu = Menu(self.menu)
-        self.menu.add_cascade(label='File', menu=self.sub_menu)
-        self.sub_menu.add_command(label='Run', command=self.printTest)
-        self.sub_menu.add_command(label='Save', command=self.doNothing)
-        self.sub_menu.add_command(label='Save As...', command=self.doNothing)
-        self.sub_menu.add_command(label='Quit', command=master.quit)
+        self.file_menu = Menu(self.menu)
+        self.menu.add_cascade(label='File', menu=self.file_menu)
+        self.file_menu.add_command(label='Run', command=self.printTest)
+        self.file_menu.add_command(label='Save', command=self.doNothing)
+        self.file_menu.add_command(label='Save As...', command=self.doNothing)
+        self.file_menu.add_command(label='Quit', command=master.quit)
+
+        self.help_menu = Menu(self.menu)
+        self.menu.add_cascade(label='Help', menu=self.help_menu)
+        self.help_menu.add_command(label='About', command=self.doNothing)
+        self.help_menu.add_command(label='License', command=self.doNothing)
 
         # Creating the frames
         toolbar = Frame(master, height=50)
