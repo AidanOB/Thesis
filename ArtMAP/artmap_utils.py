@@ -92,12 +92,106 @@ def update_weights(inputs, weights, category_num, learn_rate):
     """
     This function returns a new weight matrix which has learned the input for the category and whether or not it was
     changed
-    :param inputs: A vector
-    :param weights:
-    :param category_num:
-    :param learn_rate:
-    :return:
+    :param inputs: A vector which has the length of the number of features in the network. It contains the signal input
+        into the network
+    :param weights: A matrix of size num_features-by-num_categories which holds the current weights of the network
+    :param category_num: The current category for the encoding of the current input range [0, num_categories)
+    :param learn_rate: The learning rate at which the network learns new inputs. [0, 1]
+    :return: updated_weights, changed. updated_weights is a matrix of num_features-by-num_categories containing the
+        updated weights. changed is a binary number which confers whether or not the weight matrix was changed
     """
 
+    num_features, num_categories = weights.shape
 
+    assert len(inputs) == num_features, 'The length of the inputs and the rows of the weights do not match'
+    assert (category_num >= 1) or (category_num < num_categories), \
+        'The category must be in the range [1, num_categories]'
+
+    changed = 0
+    for i in range(num_features):
+        if inputs[i] < weights[i, category_num - 1]:
+            weights[i, category_num - 1] = learn_rate * inputs[i] + (1 - learn_rate) * weights[i, category_num - 1]
+            changed = 1
+    return weights, changed
+
+
+def category_activate(inputs, weights, bias):
+    """
+    Activates categories in an ART/ARTMAP network
+    :param inputs: A vector of size num_features that contains the signal input into the network
+    :param weights: A matrix of size num_features-by-num_categories which holds the weights of the network
+    :param bias: A constant utilised to differentiate between very similar category activation numbers
+    :return: A vector of size num_categories that holds the activation value for each category
+    """
+    num_features, num_categories = weights.shape
+    category_activated = np.ones((1, num_categories))
+    # print(weights)
+    for j in range(num_categories):
+        match_vector = np.min(np.array([inputs, weights[:, j]]).T, axis=1)
+        weight_length = np.sum(weights[:, j])
+        category_activated[0, j] = np.sum(match_vector) / (bias + weight_length)
+
+    return category_activated
+
+
+def sort_like_matlab(data):
+    """
+    This function performs a sort and returns the original indices as the recond return value
+    :param data: A numpy array to be sorted in ascending order
+    :return: sorted_data, data_indices
+    """
+    sorted_data = np.sort(data)
+    data_indices = np.argsort(data)[0]
+    return sorted_data, data_indices
+
+
+def calculate_match(data, weight_vector):
+    """
+    Calculates a similarity value that represents the match between the given data and the given category weight
+    :param data: A vector of size num_features that contains the signal input
+    :param weight_vector: A vector of size num_features that holds the weights of the network for a given category
+    The length of the data must match the length of the weight vector.
+    :return: The match value of the similarity between the input and the current category
+    """
+
+    num_features = len(data)
+    assert (num_features == len(weight_vector)), 'The data and weight_vector lengths do not match.'
+    # print(np.array([data, weight_vector]).T)
+    match_vector = np.min(np.array([data, weight_vector]).T, axis=1)
+    # print(match_vector)
+    data_length = np.sum(data)
+    # print(data_length)
+    if data_length == 0:
+        match = 0
+    else:
+        match = np.sum(match_vector) / data_length
+
+    return match
+
+
+def classify(artmap_net, data):
+    """
+    Uses the ARTMAP network to classify the given data. It utilises the network to classify the given input with the
+    specified vigilance parameter (given by the network). Each sample is given is presented to the network, which then
+    classifies it.
+    :param artmap_net: This is a trained artmap network. Use create_network() and training.artmap_learning() to create
+    and train the network respectively
+    :param data: The classification data to be presented to the network. It's a matrix of size num_features-by-
+     num_samples.
+    :return: A vector of size num_samples that contains the class in which the ARTMAP network placed each sample. If a
+    sample is unable to be classified,
+    """
+
+    num_features, num_samples = data.shape
+
+    assert num_features == artmap_net['num_features'], \
+        'The data does not contain the same number of features as the network'
+    print()
+    assert not (artmap_net['vigilance'] <= 0) or not (artmap_net['vigilance'] > 1), \
+        'The vigilance must be in the range (0, 1]'
+
+    classification = np.zeros((1, num_samples))
+
+    for sample in range(num_samples):
+        cur_data = data[:, sample]
 

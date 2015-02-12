@@ -6,6 +6,7 @@ Test set data and function to ensure that the ARTMAP module works correctly
 """
 
 import artmap_utils
+from training import *
 import numpy as np
 
 
@@ -69,6 +70,8 @@ def test_suite():
 
     test_add_new_cat()
 
+    test_update_weights()
+
     basic_test_example()
 
     test_results = {complement_test}
@@ -78,8 +81,8 @@ def test_suite():
 
 def basic_test_example():
     """
-    This makes ARTMAP network learn the XOR function as a test of the algorithm
-    :return: Number of epochs needed to learn the XOR function. Correct answer will be 2.
+    This makes ARTMAP network learn the XOR function as a test of the algorithm.
+    :return:
     """
 
     data = np.array([[1, 1, 0, 0],
@@ -90,11 +93,24 @@ def basic_test_example():
     data_comp = artmap_utils.complement_code(data)
 
     num_features = data.shape[1]
+    print(num_features)
     num_classes = 2
 
     network = artmap_utils.create_net(num_features, num_classes)
 
-    new_network = artmap_utils.artmap_learning(network, data_comp, super_data)
+    new_network = artmap_learning(network, data_comp, super_data)
+
+    # for item in new_network:
+    #     print(str(item) + ': ' + str(new_network[item]))
+
+    new_data = np.array([[1, 0.5, 0, 1, 0],
+                         [1, 0.5, 1, 0, 0]])
+
+    new_comp = artmap_utils.complement_code(new_data)
+
+    artmap_utils.classify(new_network, new_comp)
+
+    # Things
 
 
 def test_add_new_cat():
@@ -108,6 +124,64 @@ def test_add_new_cat():
     weight_empty = np.array([[]])
     map_empty = np.array([[]])
     rez_weight_empty, rez_map_empty = artmap_utils.add_new_cat(weight_empty, map_empty)
+
+
+def test_update_weights():
+    inputs_one = np.array([1., 0., 1., 0.])
+    weights_one = np.array([[1.0],
+                            [1.],
+                            [1.],
+                            [1.]])
+
+    up_weights_one, changed_one = artmap_utils.update_weights(inputs_one, weights_one, 1, 1)
+    up_one_corr = np.array([[1.0],
+                            [0.0],
+                            [1.0],
+                            [0.0]])
+    if (np.abs(up_weights_one - up_one_corr) < 1e-14).all():
+        print('Update Weights Test One Correct')
+        test_one = True
+    else:
+        print('Update Weights Test Two INcorrect')
+        test_two = False
+
+    inputs_two = np.array([1., 0., 1, 0])
+    weights_two = np.array([[1.0, 1],
+                            [0, 1.0],
+                            [0, 1.0],
+                            [1, 1.0]])
+    up_weights_two, changed_two = artmap_utils.update_weights(inputs_two, weights_two, 2, 1)
+    up_two_corr = np.array([[1.,  1.],
+                            [0.,  0.],
+                            [0.,  1.],
+                            [1.,  0.]])
+
+    if (np.abs(up_weights_two - up_two_corr) < 1e-14).all():
+        print('Update Weights Test 2 Correct')
+        test_two = True
+    else:
+        print('Update Weights Test 2 INcorrect')
+        test_two = False
+
+    inputs_three = np.array([0, 1, 1, 0])
+    weights_three = np.array([[1, 1, 1],
+                              [0, 0, 1],
+                              [1, 0, 1],
+                              [0, 1, 1]])
+    up_three_corr = np.array([[1, 1, 0],
+                              [0, 0, 1],
+                              [1, 0, 1],
+                              [0, 1, 0]])
+    up_weights_three, changed_three = artmap_utils.update_weights(inputs_three, weights_three, 3, 1)
+    if (np.abs(up_weights_three - up_three_corr) < 1e-14).all():
+        print('Update Weights Test 3 Correct')
+        test_three = True
+    else:
+        print('Update Weights Test 3 INcorrect')
+        test_three = False
+
+    return {test_one, test_two, test_three}
+
 
 
 
