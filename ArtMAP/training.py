@@ -132,5 +132,22 @@ def artmap_learning(artmap_net, data, sup_data):
     return artmap_net
 
 
-def train_network():
-    pass
+def train_network(data, supervisor):
+    """
+    This function abstracts out the learning process for the Fuzzy ARTMAP algorithm.
+    :param data: The data of the training set
+    :param supervisor: The supervisor data, to train against
+    :return: new_network, the trained ARTMAP network utilised in classification and measurement of new data
+    """
+
+
+    data_comp = complement_code(data)
+
+    num_features = data.shape[1]
+    num_classes = 2
+
+    network = create_net(num_features, num_classes)
+
+    new_network = artmap_learning(network, data_comp, supervisor)
+
+    return new_network

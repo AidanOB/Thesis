@@ -109,14 +109,15 @@ class ThesisGui:
         self.down_label = Label(options_frame, text='Downlink Speed')
         self.down_default = StringVar(master)
         self.down_default.set("Average")
-        self.down_option = OptionMenu(options_frame, self.down_default, "Very Slow", "Slow", "Average", "Fast",
-                                      "Very Fast")
+        self.down_option = OptionMenu(options_frame, self.down_default, "Extremely Slow", "Very Slow", "Slow",
+                                      "Average", "Fast", "Very Fast", "Extremely Fast")
         self.down_option.configure(width=self.option_width)
 
         self.up_label = Label(options_frame, text='Uplink Speed')
         self.up_default = StringVar(master)
         self.up_default.set("Average")
-        self.up_option = OptionMenu(options_frame, self.up_default, "Very Slow", "Slow", "Average", "Fast", "Very Fast")
+        self.up_option = OptionMenu(options_frame, self.up_default, "Extremely Slow", "Very Slow", "Slow", "Average",
+                                    "Fast", "Very Fast", "Extremely Fast")
         self.up_option.configure(width=self.option_width)
 
         self.attitude_label = Label(options_frame, text="Attitude Control")
@@ -146,6 +147,13 @@ class ThesisGui:
                                        "Visual", "Visual + Near IR", "Near Infrared", "Infrared", "Far Infrared",
                                        "Thermal Infrared", "Radar")
         self.sense_option.configure(width=self.option_width)
+
+        self.sense_acc_label = Label(options_frame, text="RS Accuracy")
+        self.sense_acc_default = StringVar(master)
+        self.sense_acc_default.set("Average")
+        self.sense_acc_option = OptionMenu(options_frame, self.sense_acc_default, "No Detail", "Vague",
+                                           "Not Detailed", "Average", "Detailed", "Very Detailed", "Extremely Detailed")
+        self.sense_acc_option.configure(width=self.option_width)
 
         # Create the Graphs to be plotted
         # Currently just placeholders for appearance
@@ -203,6 +211,8 @@ class ThesisGui:
         self.remote_option.grid(row=10, column=1)
         self.sense_label.grid(row=11, column=0, sticky=E)
         self.sense_option.grid(row=11, column=1)
+        self.sense_acc_label.grid(row=12, column=0, sticky=E)
+        self.sense_acc_option.grid(row=12, column=1)
 
     def set_toolbar_positions(self):
         self.run_button.grid(row=0, column=0, padx=2, pady=2)
