@@ -155,6 +155,12 @@ class ThesisGui:
                                            "Not Detailed", "Average", "Detailed", "Very Detailed", "Extremely Detailed")
         self.sense_acc_option.configure(width=self.option_width)
 
+        self.price_label = Label(options_frame, text="Price Importance")
+        self.price_default = StringVar(master)
+        self.price_default.set("Medium")
+        self.price_option = OptionMenu(options_frame, self.price_default, "Very Low", "Low", "Medium Low", "Medium",
+                                       "Medium High", "High", "Very High")
+
         # Create the Graphs to be plotted
         # Currently just placeholders for appearance
         self.fig = Figure(figsize=(5, 5), dpi=100)
@@ -213,6 +219,8 @@ class ThesisGui:
         self.sense_option.grid(row=11, column=1)
         self.sense_acc_label.grid(row=12, column=0, sticky=E)
         self.sense_acc_option.grid(row=12, column=1)
+        self.price_label.grid(row=13, column=0, sticky=E)
+        self.price_option.grid(row=13, column=1)
 
     def set_toolbar_positions(self):
         self.run_button.grid(row=0, column=0, padx=2, pady=2)

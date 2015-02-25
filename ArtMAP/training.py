@@ -140,7 +140,6 @@ def train_network(data, supervisor):
     :return: new_network, the trained ARTMAP network utilised in classification and measurement of new data
     """
 
-
     data_comp = complement_code(data)
 
     num_features = data.shape[1]

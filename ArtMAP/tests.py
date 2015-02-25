@@ -108,7 +108,9 @@ def basic_test_example():
 
     new_comp = artmap_utils.complement_code(new_data)
 
-    artmap_utils.classify(new_network, new_comp)
+    classes = artmap_utils.classify(new_network, new_comp, 0.65)
+
+    print(classes)
 
     # Things
 

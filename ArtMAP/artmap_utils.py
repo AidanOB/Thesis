@@ -169,7 +169,7 @@ def calculate_match(data, weight_vector):
     return match
 
 
-def classify(artmap_net, data):
+def classify(artmap_net, data, vigilance):
     """
     Uses the ARTMAP network to classify the given data. It utilises the network to classify the given input with the
     specified vigilance parameter (given by the network). Each sample is given is presented to the network, which then
@@ -178,6 +178,7 @@ def classify(artmap_net, data):
     and train the network respectively
     :param data: The classification data to be presented to the network. It's a matrix of size num_features-by-
      num_samples.
+    :param vigilance: This allows for a modified vigilance parameter to be used when calssifying matches.
     :return: A vector of size num_samples that contains the class in which the ARTMAP network placed each sample. If a
     sample is unable to be classified,
     """
@@ -187,11 +188,37 @@ def classify(artmap_net, data):
     assert num_features == artmap_net['num_features'], \
         'The data does not contain the same number of features as the network'
     print()
-    assert not (artmap_net['vigilance'] <= 0) or not (artmap_net['vigilance'] > 1), \
-        'The vigilance must be in the range (0, 1]'
+    assert not (vigilance <= 0) or not (vigilance > 1), \
+        'The vigilance must be in the range [0, 1]'
 
-    classification = np.zeros((1, num_samples))
+    classification = np.zeros(num_samples)
 
     for sample in range(num_samples):
         cur_data = data[:, sample]
+        cat_activate = category_activate(cur_data, artmap_net['weights'], artmap_net['bias'])
+        sorted_activations, sorted_categories = sort_like_matlab(-cat_activate)
+        resonance = 0
+        num_sorted_cats = len(sorted_categories)
+        cur_sorted_idx = 0
+        while not resonance:
+            if num_sorted_cats == 0:
+                classification[sample] = -1
+                resonance = 1
+                break
+            cur_category = sorted_categories[cur_sorted_idx]
 
+            cur_weight_vector = artmap_net['weights'][:, cur_category]
+
+            match = calculate_match(cur_data, cur_weight_vector)
+
+            if match < vigilance:
+                if cur_sorted_idx == num_sorted_cats - 1:
+                    classification[sample] = -1
+                    resonance = 1
+                else:
+                    cur_sorted_idx += 1
+            else:
+                classification[sample] = artmap_net['map_field'][0, cur_category]
+                resonance = 1
+
+    return classification
