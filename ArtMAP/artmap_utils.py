@@ -33,14 +33,14 @@ def complement_code(data):
     return complement_data
 
 
-def create_net(num_features, num_classes, vigilance=0.75, bias=1.0e-6, max_categories=100, start_categories=0,
+def create_net(num_features, num_classes, vigilance=0.65, bias=1.0e-6, max_categories=100, start_categories=0,
                       epochs=100, learning_rate=1):
     """
     This function creates a neural network for the artmap algorithm with the given number of features and classes.
     :param num_features: Number of features in the data
     :param num_classes: Number of classes for the supervisory signal
     The following parameters are set to defaults, but can be changed manually
-    :param vigilance: Set to 0.75
+    :param vigilance: Set to 0.65, as specified in Yu and Wang, for ideal performance in design specs
     :param bias: Set to 0.000001
     :param max_categories: Set to 100
     :param start_categories: Set to 0

@@ -8,6 +8,7 @@ Test set data and function to ensure that the ARTMAP module works correctly
 import artmap_utils
 from training import *
 import numpy as np
+from fuzzy_values import *
 
 
 def test_complement_coding():
@@ -185,11 +186,49 @@ def test_update_weights():
     return {test_one, test_two, test_three}
 
 
+def test_fuzzy_paper():
+    """
+
+    :return:
+    """
+    crs = np.array([[generic_vals["M"], generic_vals["MH"], generic_vals["ML"], generic_vals["H"], generic_vals["H"],
+                     generic_vals["H"]],
+                    [generic_vals["MH"], generic_vals["MH"], generic_vals["ML"], generic_vals["MH"], generic_vals["MH"],
+                     generic_vals["MH"]],
+                    [generic_vals["MH"], generic_vals["MH"], generic_vals["ML"], generic_vals["MH"], generic_vals["MH"],
+                     generic_vals["MH"]],
+                    [generic_vals["MH"], generic_vals["MH"], generic_vals["ML"], generic_vals["ML"], generic_vals["MH"],
+                     generic_vals["H"]],
+                    [generic_vals["MH"], generic_vals["MH"], generic_vals["MH"], generic_vals["H"], generic_vals["MH"],
+                     generic_vals["H"]],
+                    [generic_vals["VH"], generic_vals["H"], generic_vals["MH"], generic_vals["MH"], generic_vals["MH"],
+                     generic_vals["MH"]],
+                    [generic_vals["H"], generic_vals["VH"], generic_vals["MH"], generic_vals["MH"], generic_vals["H"],
+                     generic_vals["MH"]],
+                    [generic_vals["H"], generic_vals["VH"], generic_vals["MH"], generic_vals["L"], generic_vals["H"],
+                     generic_vals["MH"]],
+                    [generic_vals["H"], generic_vals["VH"], generic_vals["ML"], generic_vals["L"], generic_vals["H"],
+                     generic_vals["MH"]],
+                    [generic_vals["VH"], generic_vals["MH"], generic_vals["MH"], generic_vals["H"], generic_vals["M"],
+                     generic_vals["MH"]]]).T
+
+    fvs = np.array([[16, 50, 36, 75, 1.2, 60, 36, 180, 7, 13.5, 30.5],
+                    [16, 50, 36, 70, 1, 45, 36, 180, 7, 14, 30.5],
+                    [16, 50, 32, 70, 1, 45, 36, 280, 7, 14, 30.5],
+                    [18, 40, 36, 80, 1.2, 45, 24, 280, 6.5, 14, 30.5],
+                    [18, 40, 36, 80, 1, 50, 24, 280, 6.5, 14, 31.5],
+                    [18, 40, 36, 80, 1.2, 60, 24, 320, 6.5, 14, 31.5],
+                    [18, 40, 36, 70, 1.2, 60, 24, 320, 6.5, 13.5, 30.5],
+                    [16, 50, 36, 70, 1.2, 50, 24, 320, 6.25, 13.5, 31.5],
+                    [18, 40, 36, 80, 1.2, 60, 36, 180, 6.5, 13.5, 31.5],
+                    [20, 60, 40, 75, 1, 50, 36, 320, 6.5, 14, 31.5]]).T
+    print(crs)
+    print(fvs)
+    # test_net = train_network(crs, fvs)
 
 
-
-test_suite()
-
+# test_suite()
+test_fuzzy_paper()
 
 
 # utils.artmap_learning()

@@ -14,6 +14,8 @@ components = pd.DataFrame.from_csv(path='./Component Files/components.csv', sep=
 
 systems = pd.DataFrame.from_csv(path='./Component Files/systems.csv', sep=';', encoding='iso-8859-1')
 
+panels = pd.DataFrame.from_csv(path='./Component Files/panels.csv', sep=';', encoding='iso-8859-1')
+
 comp_hidden = pd.DataFrame.from_csv(path='./Component Files/components_hidden.csv', sep=';', encoding='iso-8859-1')
 
 comp_pre_built = pd.concat([comp_hidden, components], ignore_index=True)
@@ -40,15 +42,27 @@ def calculate_cpu_metric(data, code, ram):
     :param ram: The memory in ram, important for more complicated processes onboard the satellite
     :return: A numerical value that contains the the calculated metric for the system
     """
-    max_data = 15000  # Matching an ideal state
-    max_code = 100  # Near enough to the maximum value to be an ideal state
-    max_ram = 128  # Less than the maximum, but reaches an ideal state
-
-    data_met = (data / max_data).clip(min=0, max=1)
-    code_met = (code / max_code).clip(min=0, max=1)
-    ram_met = (ram / max_ram).clip(min=0, max=1)
-
-    return np.abs((data_met + code_met + ram_met) / 3).clip(min=0, max=1)
+    # max_data = 15000  # Matching an ideal state
+    # max_code = 100  # Near enough to the maximum value to be an ideal state
+    # max_ram = 128  # Less than the maximum, but reaches an ideal state
+    #
+    # data_met = (data / max_data).clip(min=0, max=1)
+    # code_met = (code / max_code).clip(min=0, max=1)
+    # ram_met = (ram / max_ram).clip(min=0, max=1)
+    #
+    # return np.abs((data_met + code_met + ram_met) / 3).clip(min=0, max=1)
+    """
+    The above code was the old CPU metric in an attempt to calculate performance. As it is no longer utilised, and is
+    simply a binary check for the presence of a flightboard.
+    Totals is used to find if there is a positive amount of memory, which is present on all flightboards.
+    It is simply the sum of any of the categories of memory.
+    If the value is greater than 0, then it returns 1, else returns 0
+    """
+    totals = data + code + ram
+    if totals > 0:
+        return 1
+    else:
+        return 0
 
 
 def calculate_br_down_metric(br_down):
@@ -57,18 +71,49 @@ def calculate_br_down_metric(br_down):
     :param br_down: A numerical value for the bit rate in kbps
     :return: A normalised value in the range [0, 1]
     """
-    br_max = 100000
+    br_max = 50000
     return np.abs(br_down / br_max).clip(min=0, max=1)
 
 
 def calculate_br_up_metric(br_up):
     """
-    This function calculates the up bit rate with a maximum of 10,000 kbps, slightly above the maximum in the data set
-    :param br_up: A numerical value for the bit rate in kbps
+    This function calculates the up bit rate metric. Normalised around logarithmic values. Where the 'average' speed is
+    considered 4800bps.
+    The formula for this is based upon the common values for transmitters/receivers. Values are often doubled from 1200
+    baud. It scales to within [0, 1] once clipping is taken into account. It returns values close to the given fuzzy
+    values
+
+    :param br_up: A numerical value for the bit rate in bps
     :return: A normalised value in the range [0, 1]
     """
-    br_max = 10000
-    return np.abs(br_up / br_max).clip(min=0, max=1)
+    if br_up < 1:
+        br_up = 1
+    min_baud = 1200
+    max_baud = 38400
+
+    num = np.log(br_up) - np.log(min_baud)
+    den = np.log(max_baud) - np.log(min_baud)
+
+    return (num / den + 0.1).clip(min=0, max=1)
+
+
+def calculate_wavelength_metric(wavelength_min, wavelength_max):
+    """
+    This function uses the given wavelength to determine where on the electromagnetic or ionised to EM converted
+    wavelength the system is capable of detecting.
+    The wavelength is generated from the median point between the minimum and maximum able to be detected. A logarithmic
+    value for the wavelength is then taken, prior to normalising into the range of 0 and 1.
+
+    :param wavelength_min: Minimum wavelength detectable by the system
+    :param wavelength_max: Maximum wavelength detectable by the system
+    :return: normalised value of the
+    """
+    length_max = np.log(550) * 2
+    wavelength = np.abs(wavelength_max + wavelength_min) / 2
+    log_wl = np.log(wavelength)
+    default_met = np.array(log_wl / length_max)
+    scaled_met = 1.75 * (default_met - 0.5) + 0.5
+    return scaled_met.clip(min=0, max=1)
 
 
 def calculate_attitude_metric(moment, mass, knowledge, axis):
@@ -82,6 +127,15 @@ def calculate_attitude_metric(moment, mass, knowledge, axis):
     :param axis:
     :return:
     """
+    # print(moment, mass)
+    moment_met = np.asarray(moment / mass).clip(min=0, max=1)
+    # print(moment_met)
+    know_met = np.asarray(10 - knowledge).clip(min=0, max=10) / 10
+    # print(know_met)
+    axis_met = np.asarray(axis / 3).clip(min=0, max=1)
+    # print(axis_met)
+    # print('Att Met:' + str(((2 * moment_met + 2 * know_met + axis_met) / 5).clip(min=0, max=1)))
+    return ((2 * moment_met + 2 * know_met + axis_met) / 5).clip(min=0, max=1)
 
 
 def create_system(sys_structure):
@@ -106,7 +160,7 @@ def parse_system(system, comps):
 
     # Load the structure from the data frame given
     # print(system)
-    struct = structures.loc[structures['Name'].isin([system['Structure']])]
+    struct = structures.loc[structures['Name'].isin([system['Structure']])].reset_index()
     internal_slots = struct['Internal Slots'].values
     external_slots = struct['External Slots'].values
     internal_vol = struct.X[0] * struct.Y[0] * struct.Z[0]
@@ -162,10 +216,10 @@ def parse_system(system, comps):
     for part in ext_list:
         idx = comps['Name'] == system[part]
         metrics_sums, metrics_mins, metrics_max, sum_vals, max_vals = parse_component(comps.loc[idx])
-        print(part)
+        # print(part)
         cube_size = 1
         if part == "Ext Sides":
-            metrics_sums = (4 * cube_size) * metrics_sums
+            metrics_sums *= (4 * cube_size)  # * metrics_sums
 
         if parts_sum_matrix.shape == (0, 0):
             parts_sum_matrix = sum_vals
@@ -191,12 +245,19 @@ def parse_system(system, comps):
 
     parts_sum_matrix = parts_sum_matrix.astype(np.float)
     parts_max_matrix = parts_max_matrix.astype(np.float)
+    min_parts = parts_max_matrix
+    min_parts[min_parts == 0] = None
+    # print(min_parts)
+    min_parts = min_parts[~np.isnan(min_parts)]
+    # print(min_parts)
+    # print(parts_max_matrix)
     # print(metric_matrix)
-    print(metric_matrix.sum(axis=1))
+    # print(metric_matrix.sum(axis=1))
     metric_min_matrix[metric_min_matrix == 0] = None
     metric_min_matrix = metric_min_matrix[~np.isnan(metric_min_matrix)]
-    print(metric_min_matrix.min())
-    print(metric_max_matrix.max(axis=1))
+
+    # print(metric_min_matrix.min())
+    # print(metric_max_matrix.max(axis=1))
     # print(parts_sum_matrix.sum(axis=1))
 
     # print(parts_max_matrix.shape)
@@ -204,8 +265,15 @@ def parse_system(system, comps):
     metrics = np.concatenate((metric_matrix.sum(axis=1), np.array([metric_min_matrix.min()]),
                               metric_max_matrix.max(axis=1)), 0)
 
-    cpu_met = calculate_cpu_metric(metrics[4], metrics[5], metrics[6])
-    print(cpu_met)
+    # cpu_met = calculate_cpu_metric(metrics[4], metrics[5], metrics[6])
+    att_met = calculate_attitude_metric(metrics[8], metrics[0], metric_min_matrix[0], metrics[10])
+    down_met = calculate_br_down_metric(metrics[2])
+    up_met = calculate_br_up_metric(metrics[3])
+    wl_met = calculate_wavelength_metric(metrics[16], metrics[17])
+    # print(metrics[4], metrics[5], metrics[6])
+    # print(metrics[8], metrics[0], metric_min_matrix[0], metrics[10])
+
+    return np.array([[att_met], [down_met], [up_met], [wl_met]]), cust_reqs
 
 
 def parse_component(component):

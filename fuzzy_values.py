@@ -35,12 +35,13 @@ down_sp = {"Extremely Slow": 0.,
            "Very Fast": 0.834,
            "Extremely Fast": 1.0}
 up_sp = {"Extremely Slow": 0.,
-         "Very Slow": 0.167,
-         "Slow": 0.33,
+         "Very Slow": 0.1,
+         "Slow": 0.3,
          "Average": 0.5,
-         "Fast": 0.667,
-         "Very Fast": 0.834,
+         "Fast": 0.7,
+         "Very Fast": 0.9,
          "Extremely Fast": 1.0}
+
 att_ctrl = {"Extremely Lenient": 0.,
             "Very Lenient": 0.167,
             "Lenient": 0.33,
@@ -56,15 +57,15 @@ remote = {"No": 0.,
           "If Possible": 0.5,
           "Yes": 1.}
 rs_wave = {"Ions": 0.,
-           "Electrons": 0.1,
-           "Ultraviolet": 0.2,
-           "Visual": 0.3,
-           "Visual + Near IR": 0.4,
-           "Near Infrared": 0.5,
-           "Infrared": 0.6,
-           "Far Infrared": 0.7,
-           "Thermal Infrared": 0.8,
-           "Radar": 0.9,
+           "Electrons": 0.167,
+           "Ultraviolet": 0.33,
+           "Visual": 0.5,
+           # "Visual + Near IR": 0.4,  # Removed due to lack of need
+           # "Near Infrared": 0.5,  # Removed due to lack of need
+           "Infrared": 0.667,
+           # "Far Infrared": 0.7,  # Removed due to lack of need
+           "Thermal Infrared": 0.9,
+           # "Radar": 0.9,  # Removed because unable to find OTS components to do it
            "Radio": 1.}
 rs_accuracy = {"No Detail": 0,
                "Vague": 0.167,
@@ -73,6 +74,7 @@ rs_accuracy = {"No Detail": 0,
                "Detailed": 0.667,
                "Very Detailed": 0.834,
                "Extremely Detailed": 1.}
+generic_vals = {"VL": 0., "L": 0.167, "ML": 0.333, "M": 0.5, "MH": 0.667, "H": 0.834, "VH": 1.}
 
 
 def create_value_array(size_lang, size_imp_lang, mass_imp_lang, down_lang, up_lang, alt_lang, att_lang, remote_lang,

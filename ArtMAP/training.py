@@ -143,6 +143,8 @@ def train_network(data, supervisor):
     data_comp = complement_code(data)
 
     num_features = data.shape[1]
+    print(num_features)
+
     num_classes = 2
 
     network = create_net(num_features, num_classes)
