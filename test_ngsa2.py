@@ -20,3 +20,4 @@ if __name__ == "__main__":
     #     print(sat)
     R_pop = population_union(pop, c_pop)
     R_pop2 = population_union(pop2, c_pop2)
+    calculate_satellite_metrics(R_pop[0])

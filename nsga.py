@@ -9,7 +9,9 @@ import random
 from components import structures
 from components import components as compos
 from components import panels
+from components import parse_component
 import numpy as np
+import pandas as pd
 
 MAX_RANDOM_SEARCHES = 10
 SIDE_PANELS_TOTAL = 7
@@ -279,7 +281,8 @@ def mutate_satellite(satellite, structure_mut_rate):
 
             if under_one < 1:
                 available_slots = 0
-
+    # Clearing the metrics, since they will be different
+    satellite['Metrics'] = np.array([], ndmin=1)
     return satellite
 
 
@@ -291,3 +294,29 @@ def population_union(population_one, population_two):
     :return: P_1 U P_2
     """
     return population_one + population_two
+
+
+def calculate_satellite_metrics(satellite):
+    """
+    This function takes a satellite structure that has been created and evaluates the metrics that it possesses, it
+    updates the Metrics array in the satellite before returning it
+    :param satellite: The satellite structure
+    :return: The satellite structure with the metrics array calculated
+    """
+
+    comps = satellite['Components']
+    for comp in comps:
+        comp_num = np.where(compos['Name'] == comp)[0][0]
+        print(pd.DataFrame(compos.loc[comp_num]))
+        metrics_sums, metrics_mins, metrics_max, sum_vals, max_vals = parse_component(pd.DataFrame(compos.loc[comp_num]))
+        # print(metrics_sums)
+
+
+def parse_component(component):
+    """
+    Parses the component utilising values that are required for the genetic algorithm, returning raw values that can be
+    converted into appropriate metrics later
+    :param component: Pandas series entry for the component
+    :return: raw values in a numpy array
+    """
+    pass
