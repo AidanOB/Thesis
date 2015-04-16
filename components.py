@@ -71,8 +71,15 @@ def calculate_br_down_metric(br_down):
     :param br_down: A numerical value for the bit rate in kbps
     :return: A normalised value in the range [0, 1]
     """
-    br_max = 50000
-    return np.abs(br_down / br_max).clip(min=0, max=1)
+    if br_down < 1:
+        br_down = 1
+    min_baud = 1200
+    max_baud = 38400
+
+    num = np.log(br_down) - np.log(min_baud)
+    den = np.log(max_baud) - np.log(min_baud)
+
+    return (num / den + 0.1).clip(min=0, max=1)
 
 
 def calculate_br_up_metric(br_up):
@@ -304,7 +311,7 @@ def parse_component(component):
     nom_power = component['Nom Power'].values[0]
     max_power = component['Power (W)'].values[0] - nom_power  # This returns the difference when activated
     discharge_time = component['Discharge Time (Wh)'].values[0]
-    pixel_resolution = component['Resolution (MP)'].values[0]
+    pixel_resolution = component['Resolution (m)'].values[0]
     wavelength_resolution = component['Resolution(nm)'].values[0]
     min_wavelength = component['Min Wavelength (nm)'].values[0]
     max_wavelength = component['Max Wavelength (nm)'].values[0]

@@ -9,7 +9,7 @@ import random
 from components import structures
 from components import components as compos
 from components import panels
-from components import parse_component
+# from components import parse_component
 import numpy as np
 import pandas as pd
 
@@ -303,13 +303,30 @@ def calculate_satellite_metrics(satellite):
     :param satellite: The satellite structure
     :return: The satellite structure with the metrics array calculated
     """
-
+    # print(satellite)
     comps = satellite['Components']
+    values = np.array([])
     for comp in comps:
         comp_num = np.where(compos['Name'] == comp)[0][0]
-        print(pd.DataFrame(compos.loc[comp_num]))
-        metrics_sums, metrics_mins, metrics_max, sum_vals, max_vals = parse_component(pd.DataFrame(compos.loc[comp_num]))
-        # print(metrics_sums)
+        if not values.any():
+            values = parse_component(pd.DataFrame(compos.loc[comp_num]).T)
+        else:
+            values = np.vstack((values, parse_component(pd.DataFrame(compos.loc[comp_num]).T)))
+
+    # print(values)
+    combined = combine_values(values)
+
+    structure_values = parse_component(pd.DataFrame(structures.loc[np.where(structures['Name']
+                                                                            == satellite['Structure'])[0][0]]).T)
+    panels_values = np.array([])
+    for panel in satellite['Panels'][0]:
+        panel_num = np.where(panels['Name'] == panel)[0][0]
+        if not panels_values.any():
+            panels_values = parse_component(pd.DataFrame(panels.loc[panel_num]).T)
+        else:
+            panels_values = np.vstack((panels_values, parse_component(pd.DataFrame(panels.loc[panel_num]).T)))
+
+    raw_values = combine_sections(structure_values, combined, panels_values)
 
 
 def parse_component(component):
@@ -319,4 +336,93 @@ def parse_component(component):
     :param component: Pandas series entry for the component
     :return: raw values in a numpy array
     """
-    pass
+
+    volume = (component['X'] * component['Y'] * component['Z']).values[0]
+    mass = component['Mass'].values[0]
+    nom_power = component['Nom Power'].values[0]
+    max_power = component['Power (W)'].values[0] - nom_power
+    min_wavelength = component['Min Wavelength (nm)'].values[0]
+    max_wavelength = component['Max Wavelength (nm)'].values[0]
+    detail = component['Resolution'].values[0]
+    br_down = component['Bit Rate Down'].values[0]
+    br_up = component['Bit Rate Up'].values[0]
+    data = component['Data Storage (MB)'].values[0]
+    code = component['Code Storage (MB)'].values[0]
+    ram = component['RAM'].values[0]
+    att_know = component['Attitude Know (deg)'].values[0]
+    att_mom = component['Attitude Control moment'].values[0]
+    price = component['Price ($US)'].values[0]
+
+    values = np.array([volume, mass, nom_power, max_power, min_wavelength, max_wavelength, detail, br_down, br_up, data,
+                       code, ram, att_know, att_mom, price])
+    return values
+
+
+def combine_values(value_array):
+    """
+    Takes in a numpy array of the values for the satellite and parses them into the required values for metric
+    conversion
+    :param value_array: numpy array
+    :return: numpy vector
+    """
+
+    volume = np.sum(value_array[:, 0], axis=0)
+    mass = np.sum(value_array[:, 1], axis=0)
+    max_power = np.sum(value_array[:, 2], axis=0) + np.max(value_array[:, 3], axis=0)
+    # Hard decision for the choice of average wavelength, could go with an average of the two and hope for
+    # mutation/child to remove an item, or to take either or. Will leave it up to random to decide
+    min_wavelength = np.min(value_array[:, 4], axis=0)
+    max_wavelength = np.max(value_array[:, 5], axis=0)
+    # Detail is pre-calculated into a metric
+    detail = np.max(value_array[:, 6], axis=0)
+    br_down = np.max(value_array[:, 7], axis=0)
+    br_up = np.max(value_array[:, 8], axis=0)
+    data = np.sum(value_array[:, 9], axis=0)
+    code = np.sum(value_array[:, 10], axis=0)
+    ram = np.sum(value_array[:, 11], axis=0)
+    att_know = np.min(value_array[:, 12], axis=0)  # minimum value is best, not calculating combination of sources
+    att_mom = np.sum(value_array[:, 13], axis=0)  # Straight summation rather than more complicated algorithms since
+    # distribution of masses is unknown
+    price = np.sum(value_array[:, 14], axis=0)
+
+    combined_values = np.array([volume, mass, max_power, min_wavelength, max_wavelength, detail, br_down, br_up, data,
+                                code, ram, att_know, att_mom, price])
+    return combined_values
+
+
+def combine_sections(structure_vals, component_vals, panel_vals):
+    """
+
+    :param structure_vals:
+    :param component_vals:
+    :param panel_vals:
+    :return:
+    """
+    mass = np.sum(structure_vals[1]) + np.sum(component_vals[1]) + 4 * np.sum(panel_vals[:, 1], axis=0)
+    max_power = np.sum(structure_vals[2]) + np.sum(component_vals[2]) + 4 * np.sum(panel_vals[:, 2], axis=0)
+    min_wavelength = component_vals[3]
+    max_wavelength = component_vals[4]
+    detail = component_vals[5]
+    br_down = component_vals[6]
+    br_up = component_vals[7]
+    data = component_vals[8] + structure_vals[8]
+    code = component_vals[9] + structure_vals[9]
+    ram = component_vals[10] + structure_vals[10]
+    att_know = np.min([structure_vals[11], component_vals[11], panel_vals[:, 11]])
+    att_mom = np.sum([structure_vals[12], component_vals[12], panel_vals[:, 12]])
+    price = structure_vals[13] + component_vals[13] + 4 * np.sum(panel_vals[:, 13], axis=0)
+
+    combined_sections = np.array([mass, max_power, min_wavelength, max_wavelength, detail, br_down, br_up, data, code,
+                                  ram, att_know, att_mom, price])
+    return combined_sections
+
+
+
+
+def volume_metric(max_volume, combined_volumes):
+    """
+    This function calculates the volume metric
+    :param max_volume: The maximum allowed internal volume
+    :param combined_volumes:
+    :return:
+    """
