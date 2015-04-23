@@ -408,8 +408,8 @@ def combine_sections(structure_vals, component_vals, panel_vals):
     data = component_vals[8] + structure_vals[8]
     code = component_vals[9] + structure_vals[9]
     ram = component_vals[10] + structure_vals[10]
-    att_know = np.min([structure_vals[11], component_vals[11], panel_vals[:, 11]])
-    att_mom = np.sum([structure_vals[12], component_vals[12], panel_vals[:, 12]])
+    att_know = np.min(np.array([structure_vals[11], component_vals[11], panel_vals[0, 11], panel_vals[1, 11]]))
+    att_mom = np.sum(np.array([structure_vals[12], component_vals[12], panel_vals[0, 12], panel_vals[0, 12]]))
     price = structure_vals[13] + component_vals[13] + 4 * np.sum(panel_vals[:, 13], axis=0)
 
     combined_sections = np.array([mass, max_power, min_wavelength, max_wavelength, detail, br_down, br_up, data, code,
