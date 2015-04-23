@@ -9,6 +9,7 @@ import random
 from components import structures
 from components import components as compos
 from components import panels
+from components import calculate_cpu_metric
 # from components import parse_component
 import numpy as np
 import pandas as pd
@@ -327,6 +328,15 @@ def calculate_satellite_metrics(satellite):
             panels_values = np.vstack((panels_values, parse_component(pd.DataFrame(panels.loc[panel_num]).T)))
 
     raw_values = combine_sections(structure_values, combined, panels_values)
+    volume_met = volume_metric(structure_values[0], combined[0])
+    mass_met = mass_metric(pd.DataFrame(structures.loc[np.where(structures['Name']
+                                                                == satellite['Structure'])[0][0]]).T['Size'].values[0],
+                           raw_values[0])
+    cpu_met = calculate_cpu_metric(raw_values[7], raw_values[8], raw_values[9])
+    power_met = power_metric(raw_values[-1], raw_values[1], 1)
+    satellite['Metrics'] = np.array([volume_met, mass_met, cpu_met, power_met])
+
+    return satellite
 
 
 def parse_component(component):
@@ -351,10 +361,11 @@ def parse_component(component):
     ram = component['RAM'].values[0]
     att_know = component['Attitude Know (deg)'].values[0]
     att_mom = component['Attitude Control moment'].values[0]
+    discharge = component['Discharge Time (Wh)'].values[0]
     price = component['Price ($US)'].values[0]
 
     values = np.array([volume, mass, nom_power, max_power, min_wavelength, max_wavelength, detail, br_down, br_up, data,
-                       code, ram, att_know, att_mom, price])
+                       code, ram, att_know, att_mom, discharge, price])
     return values
 
 
@@ -383,10 +394,11 @@ def combine_values(value_array):
     att_know = np.min(value_array[:, 12], axis=0)  # minimum value is best, not calculating combination of sources
     att_mom = np.sum(value_array[:, 13], axis=0)  # Straight summation rather than more complicated algorithms since
     # distribution of masses is unknown
-    price = np.sum(value_array[:, 14], axis=0)
+    discharge = np.sum(value_array[:, 14], axis=0)
+    price = np.sum(value_array[:, 15], axis=0)
 
     combined_values = np.array([volume, mass, max_power, min_wavelength, max_wavelength, detail, br_down, br_up, data,
-                                code, ram, att_know, att_mom, price])
+                                code, ram, att_know, att_mom, price, discharge])
     return combined_values
 
 
@@ -411,18 +423,81 @@ def combine_sections(structure_vals, component_vals, panel_vals):
     att_know = np.min(np.array([structure_vals[11], component_vals[11], panel_vals[0, 11], panel_vals[1, 11]]))
     att_mom = np.sum(np.array([structure_vals[12], component_vals[12], panel_vals[0, 12], panel_vals[0, 12]]))
     price = structure_vals[13] + component_vals[13] + 4 * np.sum(panel_vals[:, 13], axis=0)
+    discharge = structure_vals[14] + component_vals[14] + 4 * np.sum(panel_vals[:, 14], axis=0)
 
     combined_sections = np.array([mass, max_power, min_wavelength, max_wavelength, detail, br_down, br_up, data, code,
-                                  ram, att_know, att_mom, price])
+                                  ram, att_know, att_mom, price, discharge])
     return combined_sections
-
-
 
 
 def volume_metric(max_volume, combined_volumes):
     """
     This function calculates the volume metric
     :param max_volume: The maximum allowed internal volume
-    :param combined_volumes:
-    :return:
+    :param combined_volumes: the volume for all the internal components
+    :return: the calculated metric for the volume.
     """
+    vol = max_volume - combined_volumes
+    if vol < 0:
+        penalty = np.exp(-vol) - 1
+    else:
+        penalty = vol
+
+    return (1 - penalty).clip(min=0, max=1)
+
+
+def mass_metric(sat_size, sat_mass):
+    """
+    This function calculates the metric for the mass of the satellite based upon the maximum allowed for its size.
+    :param sat_size: Either 1, 1.5, 2 or 3, to correlate to CubeSat sizes of 1U, 1.5U, 2U and 3U
+    :param sat_mass: the total mass of the satellite including all peripherals
+    :return: The metric value
+    """
+
+    if sat_size == 1:
+        allowed = 1.33
+    elif sat_size == 1.5:
+        allowed = 2
+    elif sat_size == 2:
+        allowed = 2.66
+    elif sat_size == 3:
+        allowed = 4
+    else:
+        allowed = 1.33 * sat_size
+
+    mass = allowed - sat_mass
+
+    if mass < 0:
+        penalty = np.exp(-mass) - 1
+    else:
+        penalty = 0
+
+    return np.float64(1 - penalty).clip(min=0, max=1)
+
+
+def power_metric(discharge, power, batt_required):
+    """
+    This calculates the metric for the power requirements for the satellite.
+    :param discharge: This is a value for the battery discharge time. If a battery is required then this will be
+    utilised
+    :param power: The maximum power usage, whether or not the satellite can run all the components on board
+    :param batt_required: A bool value decided for a whole population
+    :return: power metric, a value between 0 and 1
+    """
+
+    if discharge > 0:
+        has_batt = True
+    else:
+        has_batt = False
+
+    if power < 0:
+        penalty = np.exp(-power) - 1
+    else:
+        penalty = 0
+
+    metric = 1 - penalty
+
+    if batt_required and not has_batt:
+        metric = metric / 2
+
+    return metric
