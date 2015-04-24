@@ -342,9 +342,11 @@ def calculate_satellite_metrics(satellite):
     br_up_met = calculate_br_up_metric(raw_values[6])
     wavelength_met = calculate_wavelength_metric(raw_values[2], raw_values[3])
     att_met = att_moment_metric(raw_values[0], raw_values[11])
+    att_know_met = 0
+    wave_det_met = 0
 
-    satellite['Metrics'] = np.array([volume_met, mass_met, cpu_met, power_met, br_down_met, br_up_met, wavelength_met,
-                                     att_met])
+    satellite['Metrics'] = np.array([volume_met, mass_met, cpu_met, power_met, br_down_met, br_up_met, att_met,
+                                     att_know_met, wavelength_met, wave_det_met])
 
     return satellite
 
@@ -556,3 +558,21 @@ def genetic_algorithm(generations, pop_size, mut_rate, target_reqs):
         # Calculate and save this generations performance
 
         # Start loop again
+
+
+def calculate_fitness(population, targets):
+
+    # The goal values are constants for satellites to operate effectively and within requirements, the customer reqs
+    # are the same and are covered by the targets
+    volume_goal = 1
+    mass_goal = 1
+    cpu_goal = 1
+    power_goal = 1
+    br_down_goal = targets[0]
+    br_up_goal = targets[1]
+    att_mom_goal = targets[2]
+    att_know_goal = targets[2]
+    wave_goal = targets[3]
+    wave_det_goal = targets[4]
+
+
