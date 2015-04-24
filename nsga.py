@@ -10,6 +10,8 @@ from components import structures
 from components import components as compos
 from components import panels
 from components import calculate_cpu_metric
+from components import calculate_br_down_metric, calculate_br_up_metric, calculate_wavelength_metric
+
 # from components import parse_component
 import numpy as np
 import pandas as pd
@@ -305,6 +307,8 @@ def calculate_satellite_metrics(satellite):
     :return: The satellite structure with the metrics array calculated
     """
     # print(satellite)
+    size = pd.DataFrame(structures.loc[np.where(structures['Name'] ==
+                                                satellite['Structure'])[0][0]]).T['Size'].values[0]
     comps = satellite['Components']
     values = np.array([])
     for comp in comps:
@@ -327,14 +331,20 @@ def calculate_satellite_metrics(satellite):
         else:
             panels_values = np.vstack((panels_values, parse_component(pd.DataFrame(panels.loc[panel_num]).T)))
 
-    raw_values = combine_sections(structure_values, combined, panels_values)
+    raw_values = combine_sections(structure_values, combined, panels_values, size)
+    # [mass, max_power, min_wavelength, max_wavelength, detail, br_down, br_up, data, code, ram,
+    # att_know, att_mom, price, discharge]
     volume_met = volume_metric(structure_values[0], combined[0])
-    mass_met = mass_metric(pd.DataFrame(structures.loc[np.where(structures['Name']
-                                                                == satellite['Structure'])[0][0]]).T['Size'].values[0],
-                           raw_values[0])
+    mass_met = mass_metric(size, raw_values[0])
     cpu_met = calculate_cpu_metric(raw_values[7], raw_values[8], raw_values[9])
     power_met = power_metric(raw_values[-1], raw_values[1], 1)
-    satellite['Metrics'] = np.array([volume_met, mass_met, cpu_met, power_met])
+    br_down_met = calculate_br_down_metric(raw_values[5])
+    br_up_met = calculate_br_up_metric(raw_values[6])
+    wavelength_met = calculate_wavelength_metric(raw_values[2], raw_values[3])
+    att_met = att_moment_metric(raw_values[0], raw_values[11])
+
+    satellite['Metrics'] = np.array([volume_met, mass_met, cpu_met, power_met, br_down_met, br_up_met, wavelength_met,
+                                     att_met])
 
     return satellite
 
@@ -402,7 +412,7 @@ def combine_values(value_array):
     return combined_values
 
 
-def combine_sections(structure_vals, component_vals, panel_vals):
+def combine_sections(structure_vals, component_vals, panel_vals, size):
     """
 
     :param structure_vals:
@@ -410,8 +420,8 @@ def combine_sections(structure_vals, component_vals, panel_vals):
     :param panel_vals:
     :return:
     """
-    mass = np.sum(structure_vals[1]) + np.sum(component_vals[1]) + 4 * np.sum(panel_vals[:, 1], axis=0)
-    max_power = np.sum(structure_vals[2]) + np.sum(component_vals[2]) + 4 * np.sum(panel_vals[:, 2], axis=0)
+    mass = np.sum(structure_vals[1]) + np.sum(component_vals[1]) + 4 * np.sum(panel_vals[:, 1], axis=0) * size
+    max_power = np.sum(structure_vals[2]) + np.sum(component_vals[2]) + 4 * np.sum(panel_vals[:, 2], axis=0) * size
     min_wavelength = component_vals[3]
     max_wavelength = component_vals[4]
     detail = component_vals[5]
@@ -421,9 +431,9 @@ def combine_sections(structure_vals, component_vals, panel_vals):
     code = component_vals[9] + structure_vals[9]
     ram = component_vals[10] + structure_vals[10]
     att_know = np.min(np.array([structure_vals[11], component_vals[11], panel_vals[0, 11], panel_vals[1, 11]]))
-    att_mom = np.sum(np.array([structure_vals[12], component_vals[12], panel_vals[0, 12], panel_vals[0, 12]]))
-    price = structure_vals[13] + component_vals[13] + 4 * np.sum(panel_vals[:, 13], axis=0)
-    discharge = structure_vals[14] + component_vals[14] + 4 * np.sum(panel_vals[:, 14], axis=0)
+    att_mom = np.sum(np.array([structure_vals[12], component_vals[12], panel_vals[0, 12] * 4 * size, panel_vals[0, 12]]))
+    price = structure_vals[13] + component_vals[13] + 4 * np.sum(panel_vals[:, 13], axis=0) * size
+    discharge = structure_vals[14] + component_vals[14] + 4 * np.sum(panel_vals[:, 14], axis=0) * size
 
     combined_sections = np.array([mass, max_power, min_wavelength, max_wavelength, detail, br_down, br_up, data, code,
                                   ram, att_know, att_mom, price, discharge])
@@ -501,3 +511,48 @@ def power_metric(discharge, power, batt_required):
         metric = metric / 2
 
     return metric
+
+
+def att_moment_metric(mass, att_moment):
+    """
+    This function calculates the metric
+    :param mass:
+    :param att_moment:
+    :return:
+    """
+    return np.float64(1.25 * (att_moment / mass)).clip(min=0, max=1)
+
+
+def genetic_algorithm(generations, pop_size, mut_rate, target_reqs):
+
+    population = create_population(pop_size)
+
+    # Put a history logging array here
+
+    for i in range(generations):
+        # Create a child population
+        child_pop = create_child_population(population)
+
+        # Provide a chance of mutating an individual satellite in the child population
+        for j in range(pop_size):
+            if random.random() < mut_rate:
+                child_pop[j] = mutate_satellite(child_pop[j], mut_rate)
+
+        # Create the union of the parent and child populations. Size is now 2*pop_size
+        r_pop = population_union(population, child_pop)
+
+        # Calculate the metrics for the satellite
+        for j in range(len(r_pop)):
+            r_pop[j] = calculate_satellite_metrics(r_pop[i])
+
+        # Calculate the distances from the desired requirements. The first four are always volume, mass, cpu and power
+
+        # Calculate the rank of all the members within the population, based on the number of zero distances, then the
+        # minimum distances to break ties where the same number of zeros are found. In second tier ties, randomly select
+        # an order. Ensure the best 5 from each of the CR limits are always included at the top of the rankings.
+
+        # Place the satellites in order of rank into a new population until n == pop_size
+
+        # Calculate and save this generations performance
+
+        # Start loop again
