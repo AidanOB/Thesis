@@ -552,11 +552,9 @@ def genetic_algorithm(generations, pop_size, mut_rate, target_reqs):
         for j in range(len(r_pop)):
             r_pop[j] = calculate_satellite_metrics(r_pop[i])
             r_pop[j]['ID'] = j
-            # r_pop[j]['Rank'] = pop_size * 2 + 1
-            # This will make the default rank higher than the maximum possible rank
 
-            # Calculate the distances from the desired requirements. The first four are always volume, mass, cpu
-            # and power
+        # Calculate the distances from the desired requirements. The first four are always volume, mass, cpu and power
+        r_pop = calculate_fitness(r_pop, target_reqs)
 
         # Calculate the rank of all the members within the population, based on the number of zero distances, then the
         # minimum distances to break ties where the same number of zeros are found. In second tier ties, randomly select
@@ -571,10 +569,22 @@ def genetic_algorithm(generations, pop_size, mut_rate, target_reqs):
     # Return the population and generations details.
 
 
-def calculate_fitness(population, targets):
+def calculate_rankings(population):
     """
 
     :param population:
+    :return:
+    """
+
+    for i in range(len(population)):
+        pass
+
+
+def calculate_fitness(population, targets):
+    """
+    This function goes through an entire population and calculates the individuals fitness compared to the target goals
+    along with some constant targets
+    :param population: A population of satellites
     :param targets:
     :return:
     """
@@ -600,13 +610,14 @@ def calculate_fitness(population, targets):
         br_u_fit = good_enough_distance(br_up_goal, satellite['Metrics'][5])
         att_m_fit = good_enough_distance(att_mom_goal, satellite['Metrics'][6])
         att_k_fit = good_enough_distance(att_know_goal, satellite['Metrics'][7])
-        wave_fit = nearest_distance(wave_goal, satellite['Metrics'][8])
+        wave_fit = nearest_distance(wave_goal, satellite['Metrics'][8], 0.005)
         wave_d_fit = good_enough_distance(wave_det_goal, satellite['Metrics'][9])
         satellite['Fitness'] = np.array([vol_fit, mass_fit, cpu_fit, power_fit, br_d_fit, br_u_fit, att_m_fit,
                                          att_k_fit, wave_fit, wave_d_fit])
 
     # satellite['Metrics'] = np.array([volume_met, mass_met, cpu_met, power_met, br_down_met, br_up_met, att_met,
     #                                  att_know_met, wavelength_met, wave_det_met])
+    return population
 
 
 def nearest_distance(goal, metric, leeway):
@@ -617,7 +628,11 @@ def nearest_distance(goal, metric, leeway):
     :param leeway: The amount of distance that a metric can be within a goal and be considered near enough to zero
     :return:
     """
-    return np.float64(np.abs(goal-metric) - leeway).clip(min=0, max=1)
+    print(metric)
+    if np.abs(metric) < 10e-12:
+        return 1
+    else:
+        return np.float64(np.abs(goal-metric) - leeway).clip(min=0, max=1)
 
 
 def good_enough_distance(goal, metric):

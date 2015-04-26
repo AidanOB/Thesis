@@ -120,7 +120,10 @@ def calculate_wavelength_metric(wavelength_min, wavelength_max):
     log_wl = np.log(wavelength)
     default_met = np.array(log_wl / length_max)
     scaled_met = 1.75 * (default_met - 0.5) + 0.5
-    return scaled_met.clip(min=0, max=1)
+    if wavelength == 0:
+        return 0
+    else:
+        return scaled_met.clip(min=0.000001, max=1)
 
 
 def calculate_attitude_metric(moment, mass, knowledge, axis):
