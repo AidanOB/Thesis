@@ -41,6 +41,7 @@ def create_population(pop_size):
                      'Components': [],
                      'Panels': [],
                      'Metrics': np.array([], ndmin=1),
+                     'Fitness': np.array([], ndmin=1),
                      'Details': np.array([structures['Internal Slots'][structures_pop[i]],
                                           structures['Internal Slots'][structures_pop[i]],
                                           structures['External Slots'][structures_pop[i]],
@@ -101,6 +102,7 @@ def create_child_population(population):
                  'Components': [],
                  'Panels': [],
                  'Metrics': np.array([], ndmin=1),
+                 'Fitness': np.array([], ndmin=1),
                  'Details': np.array([pop_a[i]['Details'][0],
                                       pop_a[i]['Details'][0],
                                       pop_a[i]['Details'][2],
@@ -109,6 +111,7 @@ def create_child_population(population):
                  'Components': [],
                  'Panels': [],
                  'Metrics': np.array([], ndmin=1),
+                 'Fitness': np.array([], ndmin=1),
                  'Details': np.array([pop_b[i]['Details'][0],
                                       pop_b[i]['Details'][0],
                                       pop_b[i]['Details'][2],
@@ -517,7 +520,8 @@ def power_metric(discharge, power, batt_required):
 
 def att_moment_metric(mass, att_moment):
     """
-    This function calculates the metric
+    This function calculates the metric for the attitude moment. It does not consider moments of inertia for the
+    satellite, nor passive sources of moment
     :param mass:
     :param att_moment:
     :return:
@@ -542,12 +546,17 @@ def genetic_algorithm(generations, pop_size, mut_rate, target_reqs):
 
         # Create the union of the parent and child populations. Size is now 2*pop_size
         r_pop = population_union(population, child_pop)
+        r_pop[:]['Rank'] = pop_size * 2 + 1  # This will make the default rank higher than the maximum possible rank
 
         # Calculate the metrics for the satellite
         for j in range(len(r_pop)):
             r_pop[j] = calculate_satellite_metrics(r_pop[i])
+            r_pop[j]['ID'] = j
+            # r_pop[j]['Rank'] = pop_size * 2 + 1
+            # This will make the default rank higher than the maximum possible rank
 
-        # Calculate the distances from the desired requirements. The first four are always volume, mass, cpu and power
+            # Calculate the distances from the desired requirements. The first four are always volume, mass, cpu
+            # and power
 
         # Calculate the rank of all the members within the population, based on the number of zero distances, then the
         # minimum distances to break ties where the same number of zeros are found. In second tier ties, randomly select
@@ -559,9 +568,16 @@ def genetic_algorithm(generations, pop_size, mut_rate, target_reqs):
 
         # Start loop again
 
+    # Return the population and generations details.
+
 
 def calculate_fitness(population, targets):
+    """
 
+    :param population:
+    :param targets:
+    :return:
+    """
     # The goal values are constants for satellites to operate effectively and within requirements, the customer reqs
     # are the same and are covered by the targets
     volume_goal = 1
@@ -575,4 +591,44 @@ def calculate_fitness(population, targets):
     wave_goal = targets[3]
     wave_det_goal = targets[4]
 
+    for satellite in population:
+        vol_fit = good_enough_distance(volume_goal, satellite['Metrics'][0])
+        mass_fit = good_enough_distance(mass_goal, satellite['Metrics'][1])
+        cpu_fit = good_enough_distance(cpu_goal, satellite['Metrics'][2])
+        power_fit = good_enough_distance(power_goal, satellite['Metrics'][3])
+        br_d_fit = good_enough_distance(br_down_goal, satellite['Metrics'][4])
+        br_u_fit = good_enough_distance(br_up_goal, satellite['Metrics'][5])
+        att_m_fit = good_enough_distance(att_mom_goal, satellite['Metrics'][6])
+        att_k_fit = good_enough_distance(att_know_goal, satellite['Metrics'][7])
+        wave_fit = nearest_distance(wave_goal, satellite['Metrics'][8])
+        wave_d_fit = good_enough_distance(wave_det_goal, satellite['Metrics'][9])
+        satellite['Fitness'] = np.array([vol_fit, mass_fit, cpu_fit, power_fit, br_d_fit, br_u_fit, att_m_fit,
+                                         att_k_fit, wave_fit, wave_d_fit])
 
+    # satellite['Metrics'] = np.array([volume_met, mass_met, cpu_met, power_met, br_down_met, br_up_met, att_met,
+    #                                  att_know_met, wavelength_met, wave_det_met])
+
+
+def nearest_distance(goal, metric, leeway):
+    """
+    This function calculates the distance for metrics that aim to be the closest to the desired requirement
+    :param goal:
+    :param metric:
+    :param leeway: The amount of distance that a metric can be within a goal and be considered near enough to zero
+    :return:
+    """
+    return np.float64(np.abs(goal-metric) - leeway).clip(min=0, max=1)
+
+
+def good_enough_distance(goal, metric):
+    """
+    This function calculates the distance for metrics that only need to reach a threshold. Anything above the goal is
+    considered to be successful. Higher is better
+    :param goal:
+    :param metric:
+    :return:
+    """
+    if metric > goal:
+        return 0
+    else:
+        return np.float64(goal-metric).clip(min=0, max=1)
