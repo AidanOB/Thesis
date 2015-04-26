@@ -562,7 +562,7 @@ def genetic_algorithm(generations, pop_size, mut_rate, target_reqs):
         # minimum distances to break ties where the same number of zeros are found. In second tier ties, randomly select
         # an order. Ensure at least one with a minimum value for each CR limits are always included at the top of the
         # rankings.
-        pop2, gen_performance = calculate_rankings(r_pop)
+        pop2, max_zeros = calculate_rankings(r_pop)
 
         # Place the satellites in order of rank into a new population until n == pop_size
         new_pop = []
@@ -573,6 +573,8 @@ def genetic_algorithm(generations, pop_size, mut_rate, target_reqs):
                 new_pop.append(satellite)
 
         # Calculate and save this generations performance
+        average_dist, min_dist = performance(new_pop)
+        gen_performance = np.array([max_zeros, average_dist, min_dist])
         performance_data = np.vstack((performance_data, gen_performance))
 
         # Start loop again
@@ -581,6 +583,22 @@ def genetic_algorithm(generations, pop_size, mut_rate, target_reqs):
     # Return the population and generations details.
     performance_data = performance_data[~np.isnan(performance_data).any(1)]
     return population, performance_data
+
+
+def performance(population):
+    values = np.array([np.nan, np.nan])
+
+    for j in range(len(population)):
+        num_zeros = np.sum(population[j]['Fitness'] == 0)
+        total_dist = np.sum(population[j]['Fitness'])
+        values = np.vstack((values, np.array([num_zeros, total_dist])))
+
+    values = values[~np.isnan(values).any(1)]
+
+    average_dist = np.sum(values[:, 1]) / len(population)
+    min_dist = np.min(values[:, 1])
+
+    return average_dist, min_dist
 
 
 def calculate_rankings(population):
@@ -625,7 +643,7 @@ def calculate_rankings(population):
 
         values[locs] = -1
 
-    return population, np.array([max_zeros, average_dist, min_dist])
+    return population, max_zeros
 
 
 def calculate_fitness(population, targets):

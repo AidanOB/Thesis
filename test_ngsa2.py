@@ -6,7 +6,9 @@ population creation and other sub functions and then the whole function.
 """
 
 from nsga import *
-import matplotlib as plt
+import matplotlib.pyplot as plt
+import time
+import utils
 
 if __name__ == "__main__":
     pop = create_population(20)
@@ -36,10 +38,14 @@ if __name__ == "__main__":
         # print(satellite['Rank'])
         if satellite['Rank'] < 20:
             new_pop.append(satellite)
-    print(len(new_pop))
+
     # Test the genetic algorithm
     print('Starting Genetic Algorithm')
-    final_pop, perf = genetic_algorithm(20, 100, 0.3, targets)
-
-    print(final_pop[0])
+    t = time.time()
+    final_pop, perf = genetic_algorithm(100, 100, 0.3, targets)
+    elapsed_time = time.time() - t
+    print('Elapsed Time: ' + str(elapsed_time) + 's')
+    print(final_pop[0]['Fitness'])
     print(perf)
+
+    utils.plot_ga_performance(perf, '')
