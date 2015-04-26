@@ -534,8 +534,11 @@ def genetic_algorithm(generations, pop_size, mut_rate, target_reqs):
     population = create_population(pop_size)
 
     # Put a history logging array here
+    performance_data = np.array([np.nan, np.nan, np.nan])
 
     for i in range(generations):
+        # if not i % 10:
+        print("Starting generation: " + str(i))
         # Create a child population
         child_pop = create_child_population(population)
 
@@ -546,11 +549,10 @@ def genetic_algorithm(generations, pop_size, mut_rate, target_reqs):
 
         # Create the union of the parent and child populations. Size is now 2*pop_size
         r_pop = population_union(population, child_pop)
-        r_pop[:]['Rank'] = pop_size * 2 + 1  # This will make the default rank higher than the maximum possible rank
 
         # Calculate the metrics for the satellite
         for j in range(len(r_pop)):
-            r_pop[j] = calculate_satellite_metrics(r_pop[i])
+            r_pop[j] = calculate_satellite_metrics(r_pop[j])
             r_pop[j]['ID'] = j
 
         # Calculate the distances from the desired requirements. The first four are always volume, mass, cpu and power
@@ -558,15 +560,27 @@ def genetic_algorithm(generations, pop_size, mut_rate, target_reqs):
 
         # Calculate the rank of all the members within the population, based on the number of zero distances, then the
         # minimum distances to break ties where the same number of zeros are found. In second tier ties, randomly select
-        # an order. Ensure the best 5 from each of the CR limits are always included at the top of the rankings.
+        # an order. Ensure at least one with a minimum value for each CR limits are always included at the top of the
+        # rankings.
+        pop2, gen_performance = calculate_rankings(r_pop)
 
         # Place the satellites in order of rank into a new population until n == pop_size
+        new_pop = []
+
+        for satellite in pop2:
+            # print(satellite['Rank'])
+            if satellite['Rank'] < pop_size:
+                new_pop.append(satellite)
 
         # Calculate and save this generations performance
+        performance_data = np.vstack((performance_data, gen_performance))
 
         # Start loop again
+        population = new_pop
 
     # Return the population and generations details.
+    performance_data = performance_data[~np.isnan(performance_data).any(1)]
+    return population, performance_data
 
 
 def calculate_rankings(population):
@@ -575,9 +589,43 @@ def calculate_rankings(population):
     :param population:
     :return:
     """
+    # for satellite in population:
+    #     print(satellite)
+    values = np.array([np.nan, np.nan])
+    non_sum = np.array([np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan])
+    # Finding the number of zero values
+    cur_rank = 0
+    for j in range(len(population)):
+        num_zeros = np.sum(population[j]['Fitness'] == 0)
+        total_dist = np.sum(population[j]['Fitness'])
+        values = np.vstack((values, np.array([num_zeros, total_dist])))
+        non_sum = np.vstack((non_sum, population[j]['Fitness']))
 
-    for i in range(len(population)):
-        pass
+    values = values[~np.isnan(values).any(1)]
+    non_sum = non_sum[~np.isnan(non_sum).any(1)]
+
+    average_dist = np.sum(values[:, 1]) / len(population)
+    min_dist = np.min(values[:, 1])
+    max_zeros = np.max(values[:, 0])
+
+    for i in range(10):
+        population[np.where(non_sum[:, i] == np.min(non_sum[:, i]))[0][0]]['Rank'] = cur_rank
+        values[np.where(non_sum[:, i] == np.min(non_sum[:, i]))[0][0]] = -1
+        non_sum[np.where(non_sum[:, i] == np.min(non_sum[:, i]))[0][0]] = 10
+        cur_rank += 1
+
+    while np.max(values[:, 0]) >= 0:
+        locs = np.where(values[:, 0] == np.max(values[:, 0]))[0]
+        vals_sorted = np.sort(values[locs, 1])
+
+        for j in range(len(vals_sorted)):
+            population[locs[np.where(values[locs, 1] == vals_sorted[j])[0][0]]]['Rank'] = cur_rank
+            values[locs[np.where(values[locs, 1] == vals_sorted[j])[0][0]]] = -1
+            cur_rank += 1
+
+        values[locs] = -1
+
+    return population, np.array([max_zeros, average_dist, min_dist])
 
 
 def calculate_fitness(population, targets):
@@ -628,7 +676,6 @@ def nearest_distance(goal, metric, leeway):
     :param leeway: The amount of distance that a metric can be within a goal and be considered near enough to zero
     :return:
     """
-    print(metric)
     if np.abs(metric) < 10e-12:
         return 1
     else:

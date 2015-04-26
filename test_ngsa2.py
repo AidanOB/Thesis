@@ -6,6 +6,7 @@ population creation and other sub functions and then the whole function.
 """
 
 from nsga import *
+import matplotlib as plt
 
 if __name__ == "__main__":
     pop = create_population(20)
@@ -21,7 +22,7 @@ if __name__ == "__main__":
     R_pop = population_union(pop, c_pop)
     R_pop2 = population_union(pop2, c_pop2)
     sat = calculate_satellite_metrics(R_pop[0])
-    print(sat)
+    # print(sat)
 
     targets = np.array([0.334, 0.5, 0.334, 0.5, 0.334])
     for j in range(len(R_pop)):
@@ -29,5 +30,16 @@ if __name__ == "__main__":
         R_pop[j]['ID'] = j
 
     R_pop = calculate_fitness(R_pop, targets)
+    calculate_rankings(R_pop)
+    new_pop = []
     for satellite in R_pop:
-        print(satellite)
+        # print(satellite['Rank'])
+        if satellite['Rank'] < 20:
+            new_pop.append(satellite)
+    print(len(new_pop))
+    # Test the genetic algorithm
+    print('Starting Genetic Algorithm')
+    final_pop, perf = genetic_algorithm(20, 100, 0.3, targets)
+
+    print(final_pop[0])
+    print(perf)

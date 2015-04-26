@@ -123,7 +123,7 @@ def calculate_wavelength_metric(wavelength_min, wavelength_max):
     if wavelength == 0:
         return 0
     else:
-        return scaled_met.clip(min=0.000001, max=1)
+        return scaled_met.clip(min=10e-11, max=1)
 
 
 def calculate_attitude_metric(moment, mass, knowledge, axis):
