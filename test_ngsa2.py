@@ -24,6 +24,7 @@ if __name__ == "__main__":
     R_pop = population_union(pop, c_pop)
     R_pop2 = population_union(pop2, c_pop2)
     sat = calculate_satellite_metrics(R_pop[0])
+
     # print(sat)
 
     targets = np.array([0.334, 0.5, 0.334, 0.5, 0.334])
@@ -42,10 +43,12 @@ if __name__ == "__main__":
     # Test the genetic algorithm
     print('Starting Genetic Algorithm')
     t = time.time()
-    final_pop, perf = genetic_algorithm(100, 100, 0.3, targets)
+    final_pop, perf = genetic_algorithm(30, 100, 0.3, targets)
     elapsed_time = time.time() - t
     print('Elapsed Time: ' + str(elapsed_time) + 's')
     print(final_pop[0]['Fitness'])
     print(perf)
 
-    utils.plot_ga_performance(perf, '')
+    utils.save_pop_data(final_pop, 'Algorithm_Test', perf)
+    performance = utils.load_exp_performance('Algorithm_Test')
+    # utils.plot_ga_performance(performance, 'Algorithm Test - ')

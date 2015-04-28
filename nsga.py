@@ -345,13 +345,49 @@ def calculate_satellite_metrics(satellite):
     br_up_met = calculate_br_up_metric(raw_values[6])
     wavelength_met = calculate_wavelength_metric(raw_values[2], raw_values[3])
     att_met = att_moment_metric(raw_values[0], raw_values[11])
-    att_know_met = 0
-    wave_det_met = 0
+    att_know_met = att_know_metric(raw_values[10])
+    wave_det_met = raw_values[4]
 
     satellite['Metrics'] = np.array([volume_met, mass_met, cpu_met, power_met, br_down_met, br_up_met, att_met,
                                      att_know_met, wavelength_met, wave_det_met])
 
     return satellite
+
+
+def att_know_metric(att_knowledge):
+    """
+    This calculates the attitude knowledge metric from the given value
+    :param att_knowledge: The accuracy that can be determined for the satellite
+    :return:
+    """
+    if att_knowledge < 10e-5:
+        return 0
+
+    modded_know = 18 / att_knowledge
+
+    if modded_know == 1:
+        remainder = 0
+        cr_tiers = 1
+    elif modded_know < 1:
+        if modded_know > 0.75:
+            cr_tiers = modded_know
+        else:
+            cr_tiers = 0
+        remainder = 0
+    else:
+        cr_tiers = 1
+        while modded_know > 1:
+            cr_tiers += 1
+            modded_know /= 3
+
+        if modded_know != 1:
+            remainder = np.mod(1 - modded_know, 3)
+        else:
+            remainder = 0
+
+    cr_gap_distance = 1 / 6
+
+    return np.float64(cr_tiers * cr_gap_distance - remainder * cr_gap_distance).clip(min=0, max=1)
 
 
 def parse_component(component):
@@ -406,7 +442,13 @@ def combine_values(value_array):
     data = np.sum(value_array[:, 9], axis=0)
     code = np.sum(value_array[:, 10], axis=0)
     ram = np.sum(value_array[:, 11], axis=0)
-    att_know = np.min(value_array[:, 12], axis=0)  # minimum value is best, not calculating combination of sources
+    att_temp = value_array[:, 12]
+    att_temp = att_temp[att_temp > 0]
+    # att_know = np.min(value_array[:, 12], axis=0)  # minimum value is best, not calculating combination of sources
+    if att_temp.any():
+        att_know = np.min(att_temp, axis=0)
+    else:
+        att_know = 0
     att_mom = np.sum(value_array[:, 13], axis=0)  # Straight summation rather than more complicated algorithms since
     # distribution of masses is unknown
     discharge = np.sum(value_array[:, 14], axis=0)
@@ -435,7 +477,12 @@ def combine_sections(structure_vals, component_vals, panel_vals, size):
     data = component_vals[8] + structure_vals[8]
     code = component_vals[9] + structure_vals[9]
     ram = component_vals[10] + structure_vals[10]
-    att_know = np.min(np.array([structure_vals[11], component_vals[11], panel_vals[0, 11], panel_vals[1, 11]]))
+    att_temp = np.array([structure_vals[11], component_vals[11], panel_vals[0, 11], panel_vals[1, 11]])
+    att_temp = att_temp[att_temp > 0]
+    if att_temp.any():
+        att_know = np.min(att_temp)
+    else:
+        att_know = 0
     att_mom = np.sum(np.array([structure_vals[12], component_vals[12], panel_vals[0, 12] * 4 * size, panel_vals[0, 12]]))
     price = structure_vals[13] + component_vals[13] + 4 * np.sum(panel_vals[:, 13], axis=0) * size
     discharge = structure_vals[14] + component_vals[14] + 4 * np.sum(panel_vals[:, 14], axis=0) * size
@@ -456,9 +503,9 @@ def volume_metric(max_volume, combined_volumes):
     if vol < 0:
         penalty = np.exp(-vol) - 1
     else:
-        penalty = vol
+        penalty = 0
 
-    return (1 - penalty).clip(min=0, max=1)
+    return np.float64(1 - penalty).clip(min=0, max=1)
 
 
 def mass_metric(sat_size, sat_mass):
@@ -513,7 +560,7 @@ def power_metric(discharge, power, batt_required):
     metric = 1 - penalty
 
     if batt_required and not has_batt:
-        metric = metric / 2
+        metric /= 2
 
     return metric
 
@@ -530,6 +577,8 @@ def att_moment_metric(mass, att_moment):
 
 
 def genetic_algorithm(generations, pop_size, mut_rate, target_reqs):
+    if pop_size < 15:
+        pop_size = 15
 
     population = create_population(pop_size)
 
@@ -614,7 +663,7 @@ def calculate_rankings(population):
     # Finding the number of zero values
     cur_rank = 0
     for j in range(len(population)):
-        num_zeros = np.sum(population[j]['Fitness'] == 0)
+        num_zeros = np.sum(population[j]['Fitness'] < 10e-14)
         total_dist = np.sum(population[j]['Fitness'])
         values = np.vstack((values, np.array([num_zeros, total_dist])))
         non_sum = np.vstack((non_sum, population[j]['Fitness']))
@@ -625,6 +674,10 @@ def calculate_rankings(population):
     average_dist = np.sum(values[:, 1]) / len(population)
     min_dist = np.min(values[:, 1])
     max_zeros = np.max(values[:, 0])
+
+    population[np.where(min_dist == values[:, 1])[0][0]]['Rank'] = cur_rank
+    values[np.where(min_dist == values[:, 1])[0][0]] = -1
+    cur_rank += 1
 
     for i in range(10):
         population[np.where(non_sum[:, i] == np.min(non_sum[:, i]))[0][0]]['Rank'] = cur_rank
