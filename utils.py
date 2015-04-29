@@ -42,7 +42,7 @@ def save_pop_data(population, name, performance):
         satellite_data_file = open(EXP_PATH + name + '.txt', 'w')
         print('Saving ' + name + ' to file')
         for satellite in population:
-            satellite_data_file.write("%s\n" % satellite)
+            satellite_data_file.write("%s\n\n" % satellite)
         satellite_data_file.close()
 
         print('Saving performance...')
@@ -64,3 +64,25 @@ def load_exp_performance(name):
     :return: A numpy array containing the performance
     """
     return np.loadtxt(EXP_PATH + name + '_performance.csv', delimiter=',')
+
+
+def sort_population(population):
+    """
+    This sorts the population in order of their rank, for ease of reading and evaluation
+    :param population: list of satellites
+    :return: sorted population
+    """
+
+    pop_size = len(population)
+    sorted_pop = []
+    i = 0
+
+    while i < pop_size and population:
+        for j in range(pop_size):
+            if population[j]['Rank'] == i:
+                sorted_pop.append(population[j])
+                i += 1
+                print('Placed in satellite: ' + str(i))
+                continue
+
+    return sorted_pop

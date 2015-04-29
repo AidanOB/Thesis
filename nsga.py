@@ -592,8 +592,11 @@ def genetic_algorithm(generations, pop_size, mut_rate, target_reqs):
         child_pop = create_child_population(population)
 
         # Provide a chance of mutating an individual satellite in the child population
-        for j in range(pop_size):
+        # print(len(child_pop))
+        # print(child_pop[19])
+        for j in range(pop_size - 1):
             if random.random() < mut_rate:
+                # print(j)
                 child_pop[j] = mutate_satellite(child_pop[j], mut_rate)
 
         # Create the union of the parent and child populations. Size is now 2*pop_size
