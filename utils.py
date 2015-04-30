@@ -77,7 +77,7 @@ def sort_population(population):
     sorted_pop = []
     i = 0
 
-    while i < pop_size and population:
+    while i < pop_size:
         for j in range(pop_size):
             if population[j]['Rank'] == i:
                 sorted_pop.append(population[j])

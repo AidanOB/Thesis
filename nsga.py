@@ -677,6 +677,8 @@ def calculate_rankings(population):
     average_dist = np.sum(values[:, 1]) / len(population)
     min_dist = np.min(values[:, 1])
     max_zeros = np.max(values[:, 0])
+    metric_mins = np.min(non_sum, axis=0)
+    # print(metric_mins)
 
     population[np.where(min_dist == values[:, 1])[0][0]]['Rank'] = cur_rank
     values[np.where(min_dist == values[:, 1])[0][0]] = -1

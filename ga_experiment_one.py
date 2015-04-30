@@ -18,9 +18,10 @@ if __name__ == "__main__":
     for i in range(tests):
         print(targets[i, :])
         t = time.time()
-        final_pop, perf = genetic_algorithm(200, 200, 0.3, targets[i, :])
+        final_pop, perf = genetic_algorithm(100, 100, 0.3, targets[i, :])
         elapsed_time = time.time() - t
         print('Elapsed Time: ' + str(elapsed_time) + 's')
-
         utils.save_pop_data(final_pop, '\\experiment_one\\test' + str(i), perf)
-        performance = utils.load_exp_performance('\\experiment_one\\test' + str(i))
+        final_pop = utils.sort_population(final_pop)
+        utils.save_pop_data(final_pop, '\\experiment_one\\test_sorted_' + str(i), perf)
+        # performance = utils.load_exp_performance('\\experiment_one\\test' + str(i))
