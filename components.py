@@ -10,11 +10,11 @@ from fuzzy_values import create_value_array
 
 structures = pd.DataFrame.from_csv(path='./Component Files/structures.csv', sep=';', encoding='iso-8859-1')
 
-components = pd.DataFrame.from_csv(path='./Component Files/components.csv', sep=';', encoding='iso-8859-1')
+components = pd.DataFrame.from_csv(path='./Component Files/components.csv', sep=',', encoding='iso-8859-1')
 
 systems = pd.DataFrame.from_csv(path='./Component Files/systems.csv', sep=';', encoding='iso-8859-1')
 
-panels = pd.DataFrame.from_csv(path='./Component Files/panels.csv', sep=';', encoding='iso-8859-1')
+panels = pd.DataFrame.from_csv(path='./Component Files/panels.csv', sep=',', encoding='iso-8859-1')
 
 comp_hidden = pd.DataFrame.from_csv(path='./Component Files/components_hidden.csv', sep=';', encoding='iso-8859-1')
 

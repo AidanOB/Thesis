@@ -30,7 +30,7 @@ def plot_ga_performance(performance, name):
     # return True
 
 
-def save_pop_data(population, name, performance):
+def save_pop_data(population, name, performance, met_perf):
     """
     This function saves the population to disk
     :param population: The satellite population to be saved
@@ -51,6 +51,9 @@ def save_pop_data(population, name, performance):
         # satellite_performance_file.write("%s" % performance)
         # satellite_performance_file.close()
         print('Save complete')
+
+        print('Saving metric averages...')
+        np.savetxt(EXP_PATH + name + '_met_perf.csv', met_perf, delimiter=',')
         return True
     except:
         print('Unable to print ' + name + ' to file')

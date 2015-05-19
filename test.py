@@ -57,8 +57,17 @@ def test_create_system():
     # print(test_net)
 
 
+def test_br_mets(br):
+    print(calculate_br_down_metric(br))
+    print(calculate_br_up_metric(br))
 
 
+test_br_mets(0)
+test_br_mets(1200)
+test_br_mets(2400)
+test_br_mets(4800)
+test_br_mets(9600)
+test_br_mets(19200)
+test_br_mets(38400)
 
-
-test_create_system()
+# test_create_system()

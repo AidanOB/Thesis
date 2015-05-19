@@ -584,6 +584,7 @@ def genetic_algorithm(generations, pop_size, mut_rate, target_reqs):
 
     # Put a history logging array here
     performance_data = np.array([np.nan, np.nan, np.nan])
+    metric_performance_data = np.array([np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan])
 
     for i in range(generations):
         # if not i % 10:
@@ -625,32 +626,37 @@ def genetic_algorithm(generations, pop_size, mut_rate, target_reqs):
                 new_pop.append(satellite)
 
         # Calculate and save this generations performance
-        average_dist, min_dist = performance(new_pop)
+        average_dist, min_dist, metric_perfs = performance(new_pop)
         gen_performance = np.array([max_zeros, average_dist, min_dist])
         performance_data = np.vstack((performance_data, gen_performance))
+        metric_performance_data = np.vstack((metric_performance_data, metric_perfs))
 
         # Start loop again
         population = new_pop
 
     # Return the population and generations details.
     performance_data = performance_data[~np.isnan(performance_data).any(1)]
-    return population, performance_data
+    return population, performance_data, metric_performance_data
 
 
 def performance(population):
     values = np.array([np.nan, np.nan])
+    non_sum = np.array([np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan])
 
     for j in range(len(population)):
         num_zeros = np.sum(population[j]['Fitness'] == 0)
         total_dist = np.sum(population[j]['Fitness'])
         values = np.vstack((values, np.array([num_zeros, total_dist])))
+        non_sum = np.vstack((non_sum, population[j]['Fitness']))
 
+    non_sum = non_sum[~np.isnan(non_sum).any(1)]
     values = values[~np.isnan(values).any(1)]
 
     average_dist = np.sum(values[:, 1]) / len(population)
     min_dist = np.min(values[:, 1])
+    metric_perfs = np.mean(non_sum, axis=0)
 
-    return average_dist, min_dist
+    return average_dist, min_dist, metric_perfs
 
 
 def calculate_rankings(population):
@@ -671,8 +677,11 @@ def calculate_rankings(population):
         values = np.vstack((values, np.array([num_zeros, total_dist])))
         non_sum = np.vstack((non_sum, population[j]['Fitness']))
 
+
     values = values[~np.isnan(values).any(1)]
     non_sum = non_sum[~np.isnan(non_sum).any(1)]
+    # metric_perfs = np.mean(non_sum, axis=0)
+
 
     average_dist = np.sum(values[:, 1]) / len(population)
     min_dist = np.min(values[:, 1])

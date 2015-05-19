@@ -43,15 +43,20 @@ if __name__ == "__main__":
     # Test the genetic algorithm
     print('Starting Genetic Algorithm')
     t = time.time()
-    final_pop, perf = genetic_algorithm(2, 20, 0.3, targets)
+    final_pop, perf, metric_perfs = genetic_algorithm(2, 20, 0.3, targets)
     elapsed_time = time.time() - t
     print('Elapsed Time: ' + str(elapsed_time) + 's')
+
+    wl = calculate_wavelength_metric(400, 700)
+    print(wl)
+    wave_fit = nearest_distance(0.5, wl, 0.005)
+    print(wave_fit)
     # print(final_pop[0]['Fitness'])
     # print(perf)
-    sorted_pop = utils.sort_population(final_pop)
-
-    for satellite in sorted_pop:
-        print(satellite)
+    # sorted_pop = utils.sort_population(final_pop)
+    #
+    # for satellite in sorted_pop:
+    #     print(satellite)
 
     # utils.save_pop_data(final_pop, 'Algorithm_Test', perf)
     # performance = utils.load_exp_performance('Algorithm_Test')
